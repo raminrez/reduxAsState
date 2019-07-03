@@ -125,6 +125,15 @@ const rootReducer = combineReducers({
 });
 const store = createStore(rootReducer, undefined, applyMiddleware(logger));
 
+//selectors
+function getTodosAsIds(state) {
+  return state.todoState.ids;
+}
+
+function getTodo(state, todoId) {
+  return state.todoState.entities[todoId];
+}
+
 //View layer
 function TodoApp() {
   return (
@@ -155,16 +164,18 @@ function TodoItem({ todo, onToggleTodo }) {
     </div>
   );
 }
+//View Layer END
 
+//connecting
 function mapStateToPropsList(state) {
   return {
-    todosAsIds: state.todoState.ids
+    todosAsIds: getTodosAsIds(state)
   };
 }
 
 function mapStateToPropsItem(state, props) {
   return {
-    todo: state.todoState.entities[props.todoId]
+    todo: getTodo(state, props.todoId)
   };
 }
 
