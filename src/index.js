@@ -1,9 +1,10 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import { createStore, combineReducers } from "redux";
+import { Provider, connect } from "react-redux";
 
 import "./index.css";
-// import App from './App';
+import App from "./App";
 import * as serviceWorker from "./serviceWorker";
 
 //Action TYPES
@@ -111,19 +112,29 @@ function TodoItem({ todo, onToggleTodo }) {
     </div>
   );
 }
-function render() {
-  ReactDOM.render(
-    <TodoApp
-      todos={store.getState().todoState}
-      onToggleTodo={id => store.dispatch(doToggleTodo(id))}
-    />,
-    document.getElementById("root")
-  );
+
+function mapStateToProps(state) {
+  return {
+    todos: state.todoState
+  };
 }
 
-store.subscribe(render);
-render();
+function mapDispatchToProps(dispatch) {
+  return {
+    onToggleTodo: id => dispatch(doToggleTodo(id))
+  };
+}
 
-// ReactDOM.render(<App />, document.getElementById('root'));
+const ConnectedTodoApp = connect(
+  mapStateToProps,
+  mapDispatchToProps
+)(TodoApp);
+
+ReactDOM.render(
+  <Provider store={store}>
+    <ConnectedTodoApp />
+  </Provider>,
+  document.getElementById("root")
+);
 
 serviceWorker.unregister();
