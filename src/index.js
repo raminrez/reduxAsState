@@ -1,11 +1,15 @@
 import React from "react";
 import ReactDOM from "react-dom";
-import { createStore, combineReducers } from "redux";
+import { createStore, combineReducers, applyMiddleware } from "redux";
+import { createLogger } from "redux-logger";
 import { Provider, connect } from "react-redux";
 
 import "./index.css";
 import App from "./App";
 import * as serviceWorker from "./serviceWorker";
+
+// logger
+const logger = createLogger();
 
 //Action TYPES
 const TODO_ADD = "TODO_ADD";
@@ -31,14 +35,12 @@ function todoReducer(state = todos, action) {
 }
 
 function applyAddTodo(state, action) {
-  const todo = Object.assign({}, action.todo, { completed: false });
-  return state.concat(todo);
+  const todo = { ...action.todo, completed: false };
+  return [...state, todo];
 }
 function applyToggleTodo(state, action) {
   return state.map(todo =>
-    todo.id === action.todo.id
-      ? Object.assign({}, todo, { completed: !todo.completed })
-      : todo
+    todo.id === action.todo.id ? { ...todo, completed: !todo.completed } : todo
   );
 }
 function filterReducer(state = "SHOW_ALL", action) {
@@ -80,7 +82,7 @@ const rootReducer = combineReducers({
   todoState: todoReducer,
   filterState: filterReducer
 });
-const store = createStore(rootReducer);
+const store = createStore(rootReducer, undefined, applyMiddleware(logger));
 
 //View layer
 function TodoApp() {
