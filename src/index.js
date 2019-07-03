@@ -1,7 +1,8 @@
-import React from "react";
+import React, { Component } from "react";
 import ReactDOM from "react-dom";
 import { createStore, combineReducers, applyMiddleware } from "redux";
 import { schema, normalize } from "normalizr";
+import uuid from "uuid/v4";
 import { createLogger } from "redux-logger";
 import { Provider, connect } from "react-redux";
 
@@ -164,6 +165,44 @@ function TodoItem({ todo, onToggleTodo }) {
     </div>
   );
 }
+
+class TodoCreate extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { value: "" };
+
+    this.onChangeName = this.onChangeName.bind(this);
+    this.onCreateTodo = this.onCreateTodo.bind(this);
+  }
+
+  onChangeName(event) {
+    this.setState({
+      value: event.target.value
+    });
+  }
+
+  onCreateTodo(event) {
+    this.props.onAddTodo(this.state.value);
+    this.setState({ value: "" });
+    event.preventDefault();
+  }
+
+  render() {
+    return (
+      <div>
+        <form onSubmit={this.onCreateTodo}>
+          <input
+            type="text"
+            placeholder="Add Todo..."
+            value={this.state.value}
+            onChange={this.onChangeName}
+          />
+          <button type="submit">Add</button>
+        </form>
+      </div>
+    );
+  }
+}
 //View Layer END
 
 //connecting
@@ -185,11 +224,21 @@ function mapDispatchToPropsItem(dispatch) {
   };
 }
 
+function mapDispatchToPropsCreate(dispatch) {
+  return {
+    onAddTodo: name => dispatch(doAddTodo(uuid(), name))
+  };
+}
+
 const ConnectedTodoList = connect(mapStateToPropsList)(TodoList);
 const ConnectedTodoItem = connect(
   mapStateToPropsItem,
   mapDispatchToPropsItem
 )(TodoItem);
+const ConnectedTodoCreate = connect(
+  null,
+  mapDispatchToPropsCreate
+)(TodoCreate);
 
 // store.dispatch({
 //   type: ASSIGNED_TO_CHANGE,
@@ -201,6 +250,7 @@ const ConnectedTodoItem = connect(
 
 ReactDOM.render(
   <Provider store={store}>
+    <ConnectedTodoCreate />
     <TodoApp />
   </Provider>,
   document.getElementById("root")
