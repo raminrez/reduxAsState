@@ -1,12 +1,129 @@
-import React from 'react';
-import ReactDOM from 'react-dom';
-import './index.css';
-import App from './App';
-import * as serviceWorker from './serviceWorker';
+import React from "react";
+import ReactDOM from "react-dom";
+import { createStore, combineReducers } from "redux";
 
-ReactDOM.render(<App />, document.getElementById('root'));
+import "./index.css";
+// import App from './App';
+import * as serviceWorker from "./serviceWorker";
 
-// If you want your app to work offline and load faster, you can change
-// unregister() to register() below. Note this comes with some pitfalls.
-// Learn more about service workers: https://bit.ly/CRA-PWA
+//Action TYPES
+const TODO_ADD = "TODO_ADD";
+const TODO_TOGGLE = "TODO_TOGGLE";
+const FILTER_SET = "FILTER_SET";
+
+//reducers
+const todos = [
+  { id: "0", name: "learn redux" },
+  { id: "1", name: "learn mobx" }
+];
+function todoReducer(state = todos, action) {
+  switch (action.type) {
+    case TODO_ADD: {
+      return applyAddTodo(state, action);
+    }
+    case TODO_TOGGLE: {
+      return applyToggleTodo(state, action);
+    }
+    default:
+      return state;
+  }
+}
+
+function applyAddTodo(state, action) {
+  const todo = Object.assign({}, action.todo, { completed: false });
+  return state.concat(todo);
+}
+function applyToggleTodo(state, action) {
+  return state.map(todo =>
+    todo.id === action.todo.id
+      ? Object.assign({}, todo, { completed: !todo.completed })
+      : todo
+  );
+}
+function filterReducer(state = "SHOW_ALL", action) {
+  switch (action.type) {
+    case FILTER_SET: {
+      return applySetFilter(state, action);
+    }
+    default:
+      return state;
+  }
+}
+function applySetFilter(state, action) {
+  return action.filter;
+}
+
+//actionCreators
+function doAddTodo(id, name) {
+  return {
+    type: TODO_ADD,
+    todo: { id, name }
+  };
+}
+function doToggleTodo(id) {
+  return {
+    type: TODO_TOGGLE,
+    todo: { id }
+  };
+}
+
+function doSetFilter(filter) {
+  return {
+    type: FILTER_SET,
+    filter
+  };
+}
+
+// store
+const rootReducer = combineReducers({
+  todoState: todoReducer,
+  filterState: filterReducer
+});
+const store = createStore(rootReducer);
+
+//View layer
+function TodoApp({ todos, onToggleTodo }) {
+  return (
+    <div>
+      <TodoList todos={todos} onToggleTodo={onToggleTodo} />
+    </div>
+  );
+}
+
+function TodoList({ todos, onToggleTodo }) {
+  return (
+    <div>
+      {todos.map(todo => (
+        <TodoItem key={todo.id} todo={todo} onToggleTodo={onToggleTodo} />
+      ))}
+    </div>
+  );
+}
+
+function TodoItem({ todo, onToggleTodo }) {
+  const { name, id, completed } = todo;
+  return (
+    <div>
+      {name}
+      <button type="button" onClick={() => onToggleTodo(id)}>
+        {completed ? "Incomplete" : "Complete"}
+      </button>
+    </div>
+  );
+}
+function render() {
+  ReactDOM.render(
+    <TodoApp
+      todos={store.getState().todoState}
+      onToggleTodo={id => store.dispatch(doToggleTodo(id))}
+    />,
+    document.getElementById("root")
+  );
+}
+
+store.subscribe(render);
+render();
+
+// ReactDOM.render(<App />, document.getElementById('root'));
+
 serviceWorker.unregister();
