@@ -5,6 +5,7 @@ import { schema, normalize } from "normalizr";
 import uuid from "uuid/v4";
 import { createLogger } from "redux-logger";
 import { Provider, connect } from "react-redux";
+import thunk from "redux-thunk";
 
 import "./index.css";
 // import App from "./App";
@@ -108,7 +109,46 @@ function applySetFilter(state, action) {
   return action.filter;
 }
 
+function notificationReducer(state = {}, action) {
+  switch (action.type) {
+    case TODO_ADD: {
+      return applySetNotificationAboutAddTodo(state, action);
+    }
+    case NOTIFICATION_HIDE: {
+      return applyRemoveNotification(state, action);
+    }
+    default:
+      return state;
+  }
+}
+
+function applySetNotificationAboutAddTodo(state, action) {
+  const { name, id } = action.todo;
+  return { ...state, [id]: "Todo Created" + name };
+}
+
+function applyRemoveNotification(state, action) {
+  const { [action.id]: notificationToRemove, ...restNotifications } = state;
+  return restNotifications;
+}
+
 //actionCreators
+function doAddTodoWithNotification(id, name) {
+  return function(dispatch) {
+    dispatch(doAddTodo(id, name));
+    setTimeout(function() {
+      dispatch(doHideNotification(id));
+    }, 5000);
+  };
+}
+
+function doHideNotification(id) {
+  return {
+    type: NOTIFICATION_HIDE,
+    id
+  };
+}
+
 function doAddTodo(id, name) {
   return {
     type: TODO_ADD,
@@ -132,9 +172,14 @@ function doSetFilter(filter) {
 // store
 const rootReducer = combineReducers({
   todoState: todoReducer,
-  filterState: filterReducer
+  filterState: filterReducer,
+  notificationState: notificationReducer
 });
-const store = createStore(rootReducer, undefined, applyMiddleware(logger));
+const store = createStore(
+  rootReducer,
+  undefined,
+  applyMiddleware(thunk, logger)
+);
 
 //selectors
 function getTodo(state, todoId) {
@@ -192,6 +237,16 @@ function Filter({ onSetFilter }) {
       <button type="text" onClick={() => onSetFilter("SHOW_INCOMPLETED")}>
         Incompleted
       </button>
+    </div>
+  );
+}
+
+function Notifications({ notifications }) {
+  return (
+    <div>
+      {notifications.map(note => (
+        <div key={note}>{note}</div>
+      ))}
     </div>
   );
 }
@@ -256,7 +311,7 @@ function mapDispatchToPropsItem(dispatch) {
 
 function mapDispatchToPropsCreate(dispatch) {
   return {
-    onAddTodo: name => dispatch(doAddTodo(uuid(), name))
+    onAddTodo: name => dispatch(doAddTodoWithNotification(uuid(), name))
   };
 }
 
@@ -264,6 +319,20 @@ function mapDispatchToPropsFilter(dispatch) {
   return {
     onSetFilter: filterType => dispatch(doSetFilter(filterType))
   };
+}
+
+function mapStateToPropsNotifications(state, props) {
+  return {
+    notifications: getNotifications(state)
+  };
+}
+
+function getNotifications(state) {
+  return getArrayOfObject(state.notificationState);
+}
+
+function getArrayOfObject(object) {
+  return Object.keys(object).map(key => object[key]);
 }
 
 const ConnectedTodoList = connect(mapStateToPropsList)(TodoList);
@@ -279,6 +348,9 @@ const ConnectedFilter = connect(
   null,
   mapDispatchToPropsFilter
 )(Filter);
+const ConnectedNotifications = connect(mapStateToPropsNotifications)(
+  Notifications
+);
 
 // store.dispatch({
 //   type: ASSIGNED_TO_CHANGE,
@@ -290,6 +362,7 @@ const ConnectedFilter = connect(
 
 ReactDOM.render(
   <Provider store={store}>
+    <ConnectedNotifications />
     <ConnectedFilter />
     <ConnectedTodoCreate />
     <TodoApp />
