@@ -13,11 +13,21 @@ import * as serviceWorker from "./serviceWorker";
 // logger
 const logger = createLogger();
 
+//constants
+const VISIBILITY_FILTERS = {
+  SHOW_COMPLETED: item => item.completed,
+  SHOW_INCOMPLETED: item => !item.completed,
+  SHOW_ALL: item => true
+};
+
 //Action TYPES
 const TODO_ADD = "TODO_ADD";
 const TODO_TOGGLE = "TODO_TOGGLE";
 const FILTER_SET = "FILTER_SET";
 const ASSIGNED_TO_CHANGE = "ASSIGNED_TO_CHANGE";
+const NOTIFICATION_SHOW = "NOTIFICATION_SHOW";
+const NOTIFICATION_HIDE = "NOTIFICATION_HIDE";
+
 //Initialize states
 const todos = [
   { id: "1", name: "Hands On: Redux Standalone with advanced Actions" },
@@ -127,12 +137,15 @@ const rootReducer = combineReducers({
 const store = createStore(rootReducer, undefined, applyMiddleware(logger));
 
 //selectors
-function getTodosAsIds(state) {
-  return state.todoState.ids;
-}
-
 function getTodo(state, todoId) {
   return state.todoState.entities[todoId];
+}
+
+function getTodosAsIds(state) {
+  return state.todoState.ids
+    .map(id => state.todoState.entities[id])
+    .filter(VISIBILITY_FILTERS[state.filterState])
+    .map(todo => todo.id);
 }
 
 //View layer
@@ -160,7 +173,24 @@ function TodoItem({ todo, onToggleTodo }) {
     <div>
       {name}
       <button type="button" onClick={() => onToggleTodo(id)}>
-        {completed ? "Incomplete" : "Complete"}
+        {completed ? "Complete" : "Incomplete"}
+      </button>
+    </div>
+  );
+}
+
+function Filter({ onSetFilter }) {
+  return (
+    <div>
+      Show
+      <button type="text" onClick={() => onSetFilter("SHOW_ALL")}>
+        All
+      </button>
+      <button type="text" onClick={() => onSetFilter("SHOW_COMPLETED")}>
+        Completed
+      </button>
+      <button type="text" onClick={() => onSetFilter("SHOW_INCOMPLETED")}>
+        Incompleted
       </button>
     </div>
   );
@@ -230,6 +260,12 @@ function mapDispatchToPropsCreate(dispatch) {
   };
 }
 
+function mapDispatchToPropsFilter(dispatch) {
+  return {
+    onSetFilter: filterType => dispatch(doSetFilter(filterType))
+  };
+}
+
 const ConnectedTodoList = connect(mapStateToPropsList)(TodoList);
 const ConnectedTodoItem = connect(
   mapStateToPropsItem,
@@ -239,6 +275,10 @@ const ConnectedTodoCreate = connect(
   null,
   mapDispatchToPropsCreate
 )(TodoCreate);
+const ConnectedFilter = connect(
+  null,
+  mapDispatchToPropsFilter
+)(Filter);
 
 // store.dispatch({
 //   type: ASSIGNED_TO_CHANGE,
@@ -250,6 +290,7 @@ const ConnectedTodoCreate = connect(
 
 ReactDOM.render(
   <Provider store={store}>
+    <ConnectedFilter />
     <ConnectedTodoCreate />
     <TodoApp />
   </Provider>,
